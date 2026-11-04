@@ -1,0 +1,65 @@
+name: AOSP17 official libziparchive tagged tree and recovery security integrity
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-libziparchive-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate exact Android17 ZIP sources, recovery variant and IncFS safeguards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import json
+          from urllib.request import Request, urlopen
+
+          base = "https://android.googlesource.com/platform/system/libziparchive/+/refs/tags/android-17.0.0_r1/"
+          def fetch(path, fmt):
+              with urlopen(Request(base + path + "?format=" + fmt,
+                                   headers={"User-Agent":"PixelExperience-Reborn-Android17-ZIP-audit"}),
+                           timeout=60) as f:
+                  return f.read()
+          def text(path):
+              return base64.b64decode(fetch(path,"TEXT")).decode("utf-8")
+
+          raw = fetch("", "JSON").decode("utf-8")
+          assert raw.startswith(")]}'"), "Gitiles tag did not return tree JSON"
+          tree = json.loads(raw.split("\n",1)[1])
+          assert tree["id"] == "6019fcd35eac4cd92dca3aee6271c557148f7938", tree.get("id")
+
+          bp = text("Android.bp")
+          ziptool = text("ziptool.cpp")
+          archive = text("zip_archive.cc")
+          for module in ('name: "libziparchive"', 'name: "libziparchive_for_incfs"',
+                         'name: "ziptool_defaults"', 'name: "ziptool"',
+                         'name: "ziptool.recovery"', 'name: "ziparchive-tests"',
+                         'name: "libziparchive_fuzzer"',
+                         'name: "libziparchive_for_incfs_fuzzer"'):
+              assert module in bp, module
+          assert 'stem: "ziptool"' in bp
+          assert 'recovery: true' in bp
+          assert '"unzip"' in bp and '"zipinfo"' in bp
+          assert 'com.android.runtime' in bp and 'com.android.webapp' in bp
+          assert '"ZIPARCHIVE_DISABLE_CALLBACK_API=1"' not in bp or 'ZIPARCHIVE_DISABLE_CALLBACK_API=1' in bp
+          for protection in ('StartsWith(name, "/")', 'StartsWith(name, "../")',
+                             'name.find("/../")'):
+              assert protection in ziptool, protection
+          assert "MappedZipFile::MappedZipFile" in archive
+          region = archive.split("MappedZipFile::MappedZipFile",1)[1].split("MappedZipFile::GetFileDescriptor",1)[0]
+          assert "#if 0" in region and "isIncfsFd(fd)" in region, "archive mapping safety policy changed"
+          assert "ZIPARCHIVE_DISABLE_CALLBACK_API" in archive
+          print("PASS: exact official AOSP17 libziparchive tree, split recovery executable and ZIP/IncFS source defenses")
+          print("NOT TESTED: full Soong/ZIP fuzz execution, recovery image placement, FBE/OTA or mondrian.")
+          PY
