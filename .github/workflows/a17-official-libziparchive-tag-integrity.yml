@@ -52,7 +52,8 @@ jobs:
           assert 'recovery: true' in bp
           assert '"unzip"' in bp and '"zipinfo"' in bp
           assert 'com.android.runtime' in bp and 'com.android.webapp' in bp
-          assert '"ZIPARCHIVE_DISABLE_CALLBACK_API=1"' not in bp or 'ZIPARCHIVE_DISABLE_CALLBACK_API=1' in bp
+          assert '-DZIPARCHIVE_DISABLE_CALLBACK_API=1' in bp
+          assert 'incfs_support/signal_handling.cpp' in bp
           for protection in ('StartsWith(name, "/")', 'StartsWith(name, "../")',
                              'name.find("/../")'):
               assert protection in ziptool, protection
