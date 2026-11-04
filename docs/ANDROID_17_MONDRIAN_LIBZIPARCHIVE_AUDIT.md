@@ -27,7 +27,8 @@ Date: 2026-11-04. **Source-only audit; legacy `seventeen` remains untouched and 
 ## Required acceptance gates
 
 - [x] Old PE `ziptool` recovery symlink patch, official AOSP17 split and upstream exact tree identified.
-- [x] Source-only audit and automated historical/official source integrity checks authored.
+- [x] Historical PE ZIP/recovery and IncFS source regression [CI PASS #41794916232](https://github.com/PixelExperience-Reborn/system_libziparchive/actions/runs/41794916232).
+- [x] Official Android17 exact Git tree, split recovery target, ZIP traversal/IncFS guards [CI PASS #41794916235](https://github.com/PixelExperience-Reborn/system_libziparchive/actions/runs/41794916235). These are source integrity checks, **not** recovery image or ZIP fuzz test executions.
 - [ ] Prove official AOSP17 source sync on the staged manifest; compile `libziparchive`, `libziparchive_for_incfs`, `ziptool`, `ziptool.recovery`, tests and fuzzers as applicable.
 - [ ] Verify real recovery image contains the intended `unzip`/`zipinfo` commands if required, alongside correct library/loader dependencies.
 - [ ] Run ZIP archive malicious corpus, CRC/ZIP64/path traversal tests and IncFS-backed APK correctness/performance tests.
