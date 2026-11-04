@@ -1,0 +1,20 @@
+name: AOSP17 PE libziparchive legacy source audit
+
+on:
+  push:
+    branches:
+      - audit/a17-mondrian-libziparchive-20261104
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  legacy-zip-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check old ZIP extraction, IncFS and recovery Soong provenance
+        run: python3 tools/verify_a17_libziparchive_legacy.py
